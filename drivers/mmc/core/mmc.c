@@ -59,6 +59,14 @@ static const unsigned int tacc_mant[] = {
 /*
  * Given the decoded CSD structure, decode the raw CID to our CID structure.
  */
+ #ifdef CONFIG_ASYNC_FSYNC
+ static unsigned int perf_degr;
+ int emmc_perf_degr(void)
+ {
+  return perf_degr;
+ }
+ #endif
+ 
 static int mmc_decode_cid(struct mmc_card *card)
 {
 	u32 *resp = card->raw_cid;
