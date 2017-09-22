@@ -1,4 +1,39 @@
 /*****************************************************************************
+*  Copyright Statement:
+*  --------------------
+*  This software is protected by Copyright and the information contained
+*  herein is confidential. The software may not be copied and the information
+*  contained herein may not be used or disclosed except with the written
+*  permission of MediaTek Inc. (C) 2009
+*
+*  BY OPENING THIS FILE, BUYER HEREBY UNEQUIVOCALLY ACKNOWLEDGES AND AGREES
+*  THAT THE SOFTWARE/FIRMWARE AND ITS DOCUMENTATIONS ("MEDIATEK SOFTWARE")
+*  RECEIVED FROM MEDIATEK AND/OR ITS REPRESENTATIVES ARE PROVIDED TO BUYER ON
+*  AN "AS-IS" BASIS ONLY. MEDIATEK EXPRESSLY DISCLAIMS ANY AND ALL WARRANTIES,
+*  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF
+*  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE OR NONINFRINGEMENT.
+*  NEITHER DOES MEDIATEK PROVIDE ANY WARRANTY WHATSOEVER WITH RESPECT TO THE
+*  SOFTWARE OF ANY THIRD PARTY WHICH MAY BE USED BY, INCORPORATED IN, OR
+*  SUPPLIED WITH THE MEDIATEK SOFTWARE, AND BUYER AGREES TO LOOK ONLY TO SUCH
+*  THIRD PARTY FOR ANY WARRANTY CLAIM RELATING THERETO. MEDIATEK SHALL ALSO
+*  NOT BE RESPONSIBLE FOR ANY MEDIATEK SOFTWARE RELEASES MADE TO BUYER'S
+*  SPECIFICATION OR TO CONFORM TO A PARTICULAR STANDARD OR OPEN FORUM.
+*
+*  BUYER'S SOLE AND EXCLUSIVE REMEDY AND MEDIATEK'S ENTIRE AND CUMULATIVE
+*  LIABILITY WITH RESPECT TO THE MEDIATEK SOFTWARE RELEASED HEREUNDER WILL BE,
+*  AT MEDIATEK'S OPTION, TO REVISE OR REPLACE THE MEDIATEK SOFTWARE AT ISSUE,
+*  OR REFUND ANY SOFTWARE LICENSE FEES OR SERVICE CHARGE PAID BY BUYER TO
+*  MEDIATEK FOR SUCH MEDIATEK SOFTWARE AT ISSUE.
+*
+*  THE TRANSACTION CONTEMPLATED HEREUNDER SHALL BE CONSTRUED IN ACCORDANCE
+*  WITH THE LAWS OF THE STATE OF CALIFORNIA, USA, EXCLUDING ITS CONFLICT OF
+*  LAWS PRINCIPLES.  ANY DISPUTES, CONTROVERSIES OR CLAIMS ARISING THEREOF AND
+*  RELATED THERETO SHALL BE SETTLED BY ARBITRATION IN SAN FRANCISCO, CA, UNDER
+*  THE RULES OF THE INTERNATIONAL CHAMBER OF COMMERCE (ICC).
+*
+*****************************************************************************/
+
+/*****************************************************************************
 *                E X T E R N A L      R E F E R E N C E S
 ******************************************************************************
 */
@@ -18,37 +53,35 @@
 #include <linux/spinlock.h>
 #include <linux/semaphore.h>
 #include <asm/uaccess.h>
+#include <linux/pmic6326_sw.h>
 #include <linux/delay.h>
 #include "yusu_android_speaker.h"
 
+
+#include <mach/mt_gpio.h>
+#include <mach/mt_typedefs.h>
+
+#define ENABLE_2_IN_1_SPK
+#define GPIO_SPEAKER_EN_PIN     GPIO116
+#define GPIO_SPEAKER_RECEIVER_SWITCH_PIN    GPIO15
 /*****************************************************************************
 *                C O M P I L E R      F L A G S
 ******************************************************************************
 */
-//#define CONFIG_DEBUG_MSG
+#define CONFIG_DEBUG_MSG
 #ifdef CONFIG_DEBUG_MSG
 #define PRINTK(format, args...) printk( KERN_EMERG format,##args )
 #else
 #define PRINTK(format, args...)
 #endif
 
-#define AMP_CLASS_AB
-//#define AMP_CLASS_D
-//#define ENABLE_2_IN_1_SPK
 
-#if !defined(AMP_CLASS_AB) && !defined(AMP_CLASS_D)
-#error "MT6323 SPK AMP TYPE does not be defined!!!"
-#endif
 /*****************************************************************************
 *                          C O N S T A N T S
 ******************************************************************************
 */
 
-#define SPK_WARM_UP_TIME        (55) //unit is ms
-#define SPK_AMP_GAIN            (4)  //4:15dB
-#define RCV_AMP_GAIN            (1)  //1:-3dB
-#define SPK_R_ENABLE            (1)
-#define SPK_L_ENABLE            (1)
+#define SPK_WARM_UP_TIME        (50) //unit is ms
 /*****************************************************************************
 *                         D A T A      T Y P E S
 ******************************************************************************
@@ -57,6 +90,10 @@ static int Speaker_Volume=0;
 static bool gsk_on=false; // speaker is open?
 static bool gsk_resume=false;
 static bool gsk_forceon=false;
+#if defined(ENABLE_2_IN_1_SPK)
+static bool grec_on=false; 
+#endif
+
 /*****************************************************************************
 *                  F U N C T I O N        D E F I N I T I O N
 ******************************************************************************
@@ -66,12 +103,18 @@ extern void Yusu_Sound_AMP_Switch(BOOL enable);
 bool Speaker_Init(void)
 {
    PRINTK("+Speaker_Init Success");
-#if defined(AMP_CLASS_AB)
+   mt_set_gpio_mode(GPIO_SPEAKER_EN_PIN,GPIO_MODE_00);  // gpio mode
+   mt_set_gpio_pull_enable(GPIO_SPEAKER_EN_PIN,GPIO_PULL_ENABLE);
+   //add by zym 
+   mt_set_gpio_dir(GPIO_SPEAKER_EN_PIN,GPIO_DIR_OUT); // output
+   mt_set_gpio_out(GPIO_SPEAKER_EN_PIN,GPIO_OUT_ZERO); // high
 
-#elif defined(AMP_CLASS_D)
-
+#if defined(ENABLE_2_IN_1_SPK)
+   PRINTK("2in1 speaker.\n");
+   mt_set_gpio_mode(GPIO_SPEAKER_RECEIVER_SWITCH_PIN,GPIO_MODE_00);  // gpio mode
+   mt_set_gpio_pull_enable(GPIO_SPEAKER_RECEIVER_SWITCH_PIN,GPIO_PULL_ENABLE);
 #endif
-   
+
    PRINTK("-Speaker_Init Success");
    return true;
 }
@@ -104,19 +147,15 @@ void Sound_SpeakerR_SetVolLevel(int level)
 void Sound_Speaker_Turnon(int channel)
 {
     PRINTK("Sound_Speaker_Turnon channel = %d\n",channel);
-    if(gsk_on)
-        return;
-#if defined(ENABLE_2_IN_1_SPK)
-#if defined(AMP_CLASS_D)
+	if(gsk_on)
+		return;
+    mt_set_gpio_dir(GPIO_SPEAKER_EN_PIN,GPIO_DIR_OUT); // output
+    mt_set_gpio_out(GPIO_SPEAKER_EN_PIN,GPIO_OUT_ONE); // high
 
-#endif
-#endif
-#if defined(AMP_CLASS_AB)
-
-#elif defined(AMP_CLASS_D)
-
-#endif
-    //msleep(SPK_WARM_UP_TIME);
+    mt_set_gpio_dir(GPIO_SPEAKER_RECEIVER_SWITCH_PIN,GPIO_DIR_OUT); // output
+    mt_set_gpio_out(GPIO_SPEAKER_RECEIVER_SWITCH_PIN,GPIO_OUT_ZERO); // high
+    
+    msleep(SPK_WARM_UP_TIME);
     gsk_on = true;
 }
 
@@ -125,11 +164,12 @@ void Sound_Speaker_Turnoff(int channel)
     PRINTK("Sound_Speaker_Turnoff channel = %d\n",channel);
 	if(!gsk_on)
 		return;
-#if defined(AMP_CLASS_AB)
+    mt_set_gpio_dir(GPIO_SPEAKER_EN_PIN,GPIO_DIR_OUT); // output
+    mt_set_gpio_out(GPIO_SPEAKER_EN_PIN,GPIO_OUT_ZERO); // high
 
-#elif defined(AMP_CLASS_D)
+    mt_set_gpio_dir(GPIO_SPEAKER_RECEIVER_SWITCH_PIN,GPIO_DIR_OUT); // output
+    mt_set_gpio_out(GPIO_SPEAKER_RECEIVER_SWITCH_PIN,GPIO_OUT_ONE); 
 
-#endif
 	gsk_on = false;
 }
 
@@ -138,34 +178,15 @@ void Sound_Speaker_SetVolLevel(int level)
     Speaker_Volume =level;
 }
 
+
 void Sound_Headset_Turnon(void)
 {
+
 }
 
 void Sound_Headset_Turnoff(void)
 {
-}
 
-void Sound_Earpiece_Turnon(void)
-{
-#if defined(ENABLE_2_IN_1_SPK)
-
-#if defined(AMP_CLASS_D)
-
-#endif
-
-#endif
-}
-
-void Sound_Earpiece_Turnoff(void)
-{
-#if defined(ENABLE_2_IN_1_SPK)
-
-#if defined(AMP_CLASS_D)
-
-#endif
-
-#endif
 }
 
 //kernal use
@@ -215,6 +236,29 @@ void AudioAMPDevice_mute(void)
 
 int Audio_eamp_command(unsigned int type, unsigned long args, unsigned int count)
 {
+#if defined(ENABLE_2_IN_1_SPK)
+	switch(type)
+	{
+	  case EAMP_EARPIECE_OPEN:
+	    if(grec_on)	
+	   	  return;
+	   	PRINTK("2in1 speaker : EAMP_EARPIECE_OPEN.\n");       
+        mt_set_gpio_dir(GPIO_SPEAKER_RECEIVER_SWITCH_PIN,GPIO_DIR_OUT); // output low for receiver
+        mt_set_gpio_out(GPIO_SPEAKER_RECEIVER_SWITCH_PIN,GPIO_OUT_ONE); 	   	 
+        grec_on=true;
+	    break;
+	  case EAMP_EARPIECE_CLOSE:	  	
+	  	if(!grec_on)	
+	  		return;	  		
+	   	PRINTK("2in1 speaker : EAMP_EARPIECE_CLOSE.\n");        		
+        mt_set_gpio_dir(GPIO_SPEAKER_RECEIVER_SWITCH_PIN,GPIO_DIR_OUT); // output high for speaker
+        mt_set_gpio_out(GPIO_SPEAKER_RECEIVER_SWITCH_PIN,GPIO_OUT_ZERO); 	 	  		
+        grec_on=false;
+	  default:
+     // do nothing
+	  	break;
+	 }
+#endif	  
 	return 0;
 }
 static char *ExtFunArray[] =

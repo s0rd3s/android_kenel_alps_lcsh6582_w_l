@@ -14,7 +14,11 @@ static variable defination
 ----------------------------------------------------------------------*/
 
 #define REGISTER_VALUE(x)   (x - 1)
-
+#define GPIO_FSA8049_PIN GPIO116
+#define GPIO_FSA8049_PIN_M_GPIO GPIO116
+#define GPIO_WTF_PIN GPIO117
+#define GPIO_WTF_PIN_M_GPIO GPIO117
+#define GPIO_WTF2_PIN GPIO15
 
 static int button_press_debounce = 0x400;
 
@@ -229,18 +233,26 @@ static void headset_standard_judge_message(void)
 
 #ifdef ACCDET_PIN_SWAP
 
-static void accdet_FSA8049_enable(void)
-{
-	mt_set_gpio_mode(GPIO_FSA8049_PIN, GPIO_FSA8049_PIN_M_GPIO);
-	mt_set_gpio_dir(GPIO_FSA8049_PIN, GPIO_DIR_OUT);
-	mt_set_gpio_out(GPIO_FSA8049_PIN, GPIO_OUT_ONE);
-}
-
 static void accdet_FSA8049_disable(void)
 {
 	mt_set_gpio_mode(GPIO_FSA8049_PIN, GPIO_FSA8049_PIN_M_GPIO);
 	mt_set_gpio_dir(GPIO_FSA8049_PIN, GPIO_DIR_OUT);
+	mt_set_gpio_out(GPIO_FSA8049_PIN, GPIO_OUT_ONE);
+  	mt_set_gpio_mode(GPIO_WTF_PIN, GPIO_WTF_PIN_M_GPIO);
+	mt_set_gpio_dir(GPIO_WTF_PIN, GPIO_DIR_OUT);
+	mt_set_gpio_out(GPIO_WTF_PIN, GPIO_OUT_ZERO);
+	mt_set_gpio_out(GPIO_WTF2_PIN, GPIO_OUT_ONE);
+}
+
+static void accdet_FSA8049_enable(void)
+{
+	mt_set_gpio_mode(GPIO_FSA8049_PIN, GPIO_FSA8049_PIN_M_GPIO);
+	mt_set_gpio_dir(GPIO_FSA8049_PIN, GPIO_DIR_OUT);
 	mt_set_gpio_out(GPIO_FSA8049_PIN, GPIO_OUT_ZERO);
+  	mt_set_gpio_mode(GPIO_WTF_PIN, GPIO_WTF_PIN_M_GPIO);
+	mt_set_gpio_dir(GPIO_WTF_PIN, GPIO_DIR_OUT);
+	mt_set_gpio_out(GPIO_WTF_PIN, GPIO_OUT_ONE);
+	mt_set_gpio_out(GPIO_WTF2_PIN, GPIO_OUT_ZERO);
 }
 
 
