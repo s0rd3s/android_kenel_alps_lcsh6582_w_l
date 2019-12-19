@@ -453,6 +453,18 @@ config TOUCHSCREEN_S7020
 config TOUCHSCREEN_MTK_GT9XX_2
 	bool "GT9XX for Mediatek package"
 	depends on TOUCHSCREEN_MTK
+	
+config TOUCHSCREEN_MTK_MSG2138
+	bool "MSG2138 for Mediatek package"
+	depends on TOUCHSCREEN_MTK
+	
+config TOUCHSCREEN_MTK_GT1143
+	bool "GT1143 for Mediatek package"
+	depends on TOUCHSCREEN_MTK
+	
+config TOUCHSCREEN_MTK_FT6336
+	bool "FT6336 for Mediatek package"
+	depends on TOUCHSCREEN_MTK			
         
 # Touch panel
 config MTK_GT9XX

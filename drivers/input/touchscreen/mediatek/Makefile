@@ -108,3 +108,15 @@ endif
 ifeq ($(CONFIG_MTK_MIT200),y)
 obj-y	+=  melfas_mit200/
 endif
+
+ifeq ($(CONFIG_TOUCHSCREEN_MTK_MSG2138),y)
+obj-y	+=  MSG2138/
+endif
+
+ifeq ($(CONFIG_TOUCHSCREEN_MTK_GT1143),y)
+obj-y	+=  GT1143/
+endif
+
+ifeq ($(CONFIG_TOUCHSCREEN_MTK_FT6336),y)
+obj-y	+=  ft6336/
+endif
